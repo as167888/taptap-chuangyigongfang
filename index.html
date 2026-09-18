@@ -94,10 +94,15 @@
   td { font-size: 13px; }
   tbody tr:hover { background: var(--hover); }
   .col-num, td.num { text-align: right; }
-  td.name { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+  td.txt { text-align: left; }
+  /* 表格整体 nowrap，这两列要能换行展示完整内容，不被截断 */
+  td.name, td.txt.tags { white-space: normal; }
+  td.name { min-width: 150px; max-width: 260px; }
   td.name a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--border); }
   td.name a:hover { color: var(--series-1); border-bottom-color: var(--series-1); }
-  td.tags { max-width: 260px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
+  /* 标签可能很长（最多的有 6 个），允许换行而不是截断 */
+  td.tags { text-align: left; color: var(--ink-2); white-space: normal;
+             min-width: 200px; max-width: 420px; line-height: 1.45; }
   td.zero { color: var(--muted); }
   td.failed { color: var(--muted); font-size: 12px; }
   /* 增长用绿、下降用红，都配上 +/- 号，不靠颜色单独表意 */
@@ -250,8 +255,13 @@
         var spec = FORMATTERS[col.key] || [function (v) { return v || "-"; }, null];
         var td = document.createElement("td");
         var raw = g[col.key];
-        td.className = "num" + (spec[1] && !raw ? " " + spec[1] : "")
-          + (typeof raw === "string" ? " failed" : "");
+        /* 只有数值列右对齐。文本列（标签、发布日期…）一律左对齐——
+           之前给所有列都加了 .num，标签列被右对齐又被 max-width 截断 */
+        var numeric = (col.kind === "int" || col.kind === "float" || col.kind === "delta");
+        td.className = (numeric ? "num" : "txt")
+          + (col.key === "tags" ? " tags" : "")      /* td.tags 那条样式要靠这个 class 才生效 */
+          + (spec[1] && !raw ? " " + spec[1] : "")
+          + (raw === "抓取失败" ? " failed" : "");   /* 只有真失败才淡化，别把普通字符串也算上 */
         /* 新增下载列：正负加方向颜色，配合 +/- 号双重表意 */
         if (col.key === "new_downloads" && typeof raw === "number" && spec[1] !== "zero") {
           td.className += raw > 0 ? " up" : (raw < 0 ? " down" : "");
